@@ -1,5 +1,9 @@
 # Public SDK migration evidence
 
+This page records the inherited starter template's historical SDK migration.
+For the current, unreleased formatter product and its separate compatibility
+limits, see [Formatter development validation](formatter-validation.md).
+
 This migration starts from the general template's default branch `main` at
 `805d2018773bf3c6f594f5c4f9e1b2d07e71bc48`. It follows the
 [approved handoff](https://github.com/kdlbs/kandev/blob/f0e2e774cfe2df8a0d15e4c21dea7b48580e38fb/docs/plans/plugin-sdk-publishing/template-migration.md)

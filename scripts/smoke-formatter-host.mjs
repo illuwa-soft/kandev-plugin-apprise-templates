@@ -1,0 +1,153 @@
+// Owns a disposable backend and browser. All providers stay disabled and unsubscribed.
+import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
+import { once } from "node:events";
+import fs from "node:fs/promises";
+import net from "node:net";
+import path from "node:path";
+import { chromium, devices } from "playwright";
+import { request, eventually } from "./smoke-http.mjs";
+
+const [binary, webDist, archive] = process.argv.slice(2);
+for (const filename of [binary, webDist, archive]) {
+  assert.ok(filename && path.isAbsolute(filename), "Usage: node scripts/smoke-formatter-host.mjs ABS_BINARY ABS_WEB_DIST ABS_PACKAGE");
+  await fs.stat(filename);
+}
+const output = path.resolve(".build/formatter-browser");
+await fs.mkdir(output, { recursive: true });
+const home = await fs.mkdtemp(path.join(output, "host-"));
+await fs.chmod(home, 0o700);
+const allocate = async () => {
+  const listener = net.createServer();
+  listener.listen(0, "127.0.0.1");
+  await once(listener, "listening");
+  const port = listener.address().port;
+  await new Promise((resolve) => listener.close(resolve));
+  return port;
+};
+const port = await allocate();
+const agentPort = await allocate();
+const base = `http://127.0.0.1:${port}`;
+const child = spawn(binary, ["__backend"], {
+  cwd: home, detached: true, stdio: ["ignore", "pipe", "pipe"],
+  env: {
+    PATH: `${path.dirname(binary)}${path.delimiter}${process.env.PATH ?? ""}`,
+    HOME: home, LANG: "en_US.UTF-8", TMPDIR: process.env.TMPDIR ?? "/tmp",
+    KANDEV_HOME_DIR: home, KANDEV_DATABASE_PATH: path.join(home, "host.db"),
+    KANDEV_SERVER_HOST: "127.0.0.1", KANDEV_SERVER_PORT: String(port),
+    KANDEV_WEB_DIST_DIR: webDist, KANDEV_E2E_MOCK: "true", KANDEV_DOCKER_ENABLED: "false",
+    AGENTCTL_PORT: String(agentPort),
+  },
+});
+let processError;
+child.on("error", (error) => { processError = error; });
+const closed = once(child, "close");
+let logs = "";
+for (const stream of [child.stdout, child.stderr]) stream.on("data", (data) => { logs = (logs + data).slice(-1024 * 1024); });
+const json = async (route, options) => (await request(base, route, options)).json();
+const post = (route, body) => json(route, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+const checks = [];
+let browser;
+let currentPage;
+const browserErrors = [];
+try {
+  await eventually(async (signal) => {
+    if (processError) throw processError;
+    assert.equal(child.exitCode, null, "disposable backend exited");
+    return (await request(base, "/ready", { signal })).ok;
+  }, "disposable host readiness", { timeoutMs: 30000 });
+  const form = new FormData();
+  form.set("package", new Blob([await fs.readFile(archive)]), "formatter.tar.gz");
+  const installed = await json("/api/plugins/install", { method: "POST", body: form });
+  assert.equal(installed.plugin.status, "active");
+  const health = await json("/health");
+  browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined });
+  const errors = [];
+  for (const device of ["desktop", "phone"]) {
+    const context = await browser.newContext(device === "phone" ? devices["Pixel 5"] : { viewport: { width: 1440, height: 1000 } });
+    const page = await context.newPage();
+    currentPage = page;
+    page.setDefaultTimeout(10000);
+    page.on("pageerror", (error) => { errors.push(error.message); browserErrors.push(error.message); });
+    page.on("console", (message) => {
+      if (message.type() === "error") browserErrors.push(message.text());
+    });
+    const provider = await post("/api/v1/notification-providers", {
+      name: `Synthetic ${device}`, type: "apprise", config: { urls: "json://example.invalid" }, enabled: false, events: [],
+    });
+    await page.goto(`${base}/settings/preferences/notifications`, { waitUntil: "domcontentloaded" });
+    const row = page.getByTestId(`notification-formatter-${provider.id}`);
+    await row.getByRole("combobox").selectOption({ label: "kandev-plugin-apprise-templates / apprise-text (0.1.0)" });
+    const editor = row.getByTestId("apprise-template-editor");
+    await editor.getByTestId("apprise-template-event").selectOption("session.failed");
+    await editor.getByTestId("apprise-template-title").fill("Synthetic {{event.type}}");
+    await editor.getByTestId("apprise-template-body").fill("Literal body {{default.body}}");
+    await editor.getByRole("button", { name: "Preview", exact: true }).click();
+    await editor.getByTestId("apprise-template-preview").getByText(/Synthetic session.failed/).waitFor();
+    for (const event of ["session.turn_finished", "session.clarification_requested", "session.permission_requested", "office.inbox_item", "system.update_available"]) {
+      await editor.getByTestId("apprise-template-event").selectOption(event);
+      await editor.getByTestId("apprise-template-title").fill("Synthetic {{event.type}}");
+      await editor.getByTestId("apprise-template-body").fill("Literal body {{default.body}}");
+      await editor.getByRole("button", { name: "Preview", exact: true }).click();
+      await editor.getByTestId("apprise-template-preview").getByText(new RegExp(`Synthetic ${event.replaceAll(".", "\\.")}`)).waitFor();
+    }
+    await editor.getByTestId("apprise-template-event").selectOption("session.failed");
+    await editor.getByTestId("apprise-template-body").fill("{{session.url}}");
+    await editor.getByTestId("apprise-template-sample").selectOption("missing_url");
+    await editor.getByRole("button", { name: "Preview", exact: true }).click();
+    await editor.getByTestId("apprise-template-preview").getByText("The original notification content is used.", { exact: true }).waitFor();
+    assert.ok(!(await editor.getByTestId("apprise-template-preview").innerText()).includes("Synthetic session.failed"));
+    await editor.getByTestId("apprise-template-sample").selectOption("normal");
+    await editor.getByTestId("apprise-template-body").fill("Literal body {{default.body}}");
+    await page.getByRole("button", { name: "Save changes", exact: true }).click();
+    await editor.getByText("Configuration is saved but not active. Activate it explicitly.", { exact: true }).waitFor();
+    assert.ok(!(await json(`/api/v1/notification-providers/${provider.id}/formatter`)).binding?.plugin_id);
+    await editor.getByRole("button", { name: "Activate prepared configuration", exact: true }).click();
+    await editor.getByText("Configuration is active.", { exact: true }).waitFor();
+    const active = (await json(`/api/v1/notification-providers/${provider.id}/formatter`)).binding;
+    assert.equal(active.plugin_id, "kandev-plugin-apprise-templates");
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await editor.getByTestId("apprise-template-title").waitFor();
+    await editor.getByTestId("apprise-template-event").selectOption("session.failed");
+    assert.equal(await editor.getByTestId("apprise-template-title").inputValue(), "Synthetic {{event.type}}");
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${device} horizontal overflow`);
+    if (device === "phone") {
+      const box = await editor.getByRole("button", { name: "Preview", exact: true }).boundingBox();
+      assert.ok(box.height >= 44, "phone preview touch height");
+    }
+    await editor.getByRole("heading", { name: "Apprise templates", exact: true }).scrollIntoViewIfNeeded();
+    await page.screenshot({ path: path.join(output, `${device}.png`) });
+    await editor.getByRole("button", { name: "Restore default on Save", exact: true }).click();
+    await page.getByRole("button", { name: "Save changes", exact: true }).click();
+    await eventually(async () => (await json(`/api/v1/notification-providers/${provider.id}/formatter`)).binding.configuration_revision !== active.configuration_revision, "restore creates and activates a new immutable snapshot");
+    const after = (await json("/api/v1/notification-providers")).providers.find((item) => item.id === provider.id);
+    assert.equal(after.enabled, false);
+    assert.deepEqual(after.events, []);
+    checks.push(`${device}: packaged editor, six-event previews, whole-pair fallback, prepare, explicit activation, reload, restore, no subscription changes`);
+    await context.close();
+  }
+  assert.deepEqual(errors, []);
+  const sha256 = async (filename) => createHash("sha256").update(await fs.readFile(filename)).digest("hex");
+  const receipt = { mode: "private-development-host", host_version: health.version,
+    host_sha256: await sha256(binary), package_sha256: await sha256(archive), checks };
+  await fs.writeFile(path.join(output, "receipt.json"), JSON.stringify(receipt, null, 2), { mode: 0o600 });
+  console.log(JSON.stringify(receipt, null, 2));
+} catch (error) {
+  await fs.writeFile(path.join(output, "failure.log"), logs, { mode: 0o600 });
+  if (currentPage && !currentPage.isClosed()) {
+    await currentPage.screenshot({ path: path.join(output, "failure.png"), fullPage: true });
+    await fs.writeFile(path.join(output, "failure-ui.txt"), `${browserErrors.join("\n")}\n${await currentPage.locator("body").innerText()}`, { mode: 0o600 });
+  }
+  throw error;
+} finally {
+  await browser?.close();
+  if (child.pid && child.exitCode === null) {
+    child.kill("SIGTERM");
+    const timer = setTimeout(() => {
+      if (child.exitCode === null) process.kill(-child.pid, "SIGKILL");
+    }, 10000);
+    try { await closed; } finally { clearTimeout(timer); }
+  }
+  await fs.rm(home, { recursive: true, force: true });
+}

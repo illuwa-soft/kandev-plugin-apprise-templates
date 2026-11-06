@@ -1,4 +1,20 @@
-# kandev-plugin-template
+# Apprise notification templates
+
+An unreleased Kandev plugin for owner-scoped, per-event title/body templates.
+Kandev retains subscription, credential, and delivery ownership. Configuration
+is stored as immutable snapshots with explicit initial activation and synthetic
+previews in the native notification settings editor.
+
+This candidate needs the coordinated, unreleased formatter Host API. Published
+SDK `0.1.0` and unchanged stable hosts are not supported by the new formatter
+implementation yet. See [development validation](docs/formatter-validation.md)
+for reproducible checks, current evidence, and remaining acceptance work.
+
+## Inherited starter reference
+
+The following reference describes the original template and opt-in recipes.
+Its template UI, greeting webhook, and example settings have been replaced in
+this product; its historical minimum-host smoke is not a formatter test.
 
 A starter template for building a [kandev](https://github.com/kdlbs/kandev)
 **native-UI plugin** — its own git repo, packaged into a versioned tarball and

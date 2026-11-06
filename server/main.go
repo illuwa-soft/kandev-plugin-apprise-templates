@@ -1,14 +1,27 @@
-// Command kandev-plugin-template is the backend half of this kandev plugin.
-// It implements pluginsdk.Plugin (see plugin.go) and is spawned by kandev as
-// a gRPC subprocess — there is no HTTP server, no listen address, and no
-// secrets to configure: pluginsdk.Serve owns the entire transport.
-//
-// To make this your own, rename `templatePlugin` in plugin.go (and keep the
-// id in manifest.yaml, go.mod's module line, and ui/bundle.js in sync).
+// Command kandev-plugin-apprise-templates formats notification text over gRPC.
 package main
 
-import "github.com/kdlbs/kandev/pluginsdk"
+import (
+	"github.com/kdlbs/kandev/pluginsdk"
+	"log"
+	"os"
+)
 
 func main() {
-	pluginsdk.Serve(&templatePlugin{})
+	if len(os.Args) == 3 && os.Args[1] == "--verify-offline-store" {
+		if err := verifyOfflineStore(os.Args[2]); err != nil {
+			log.Fatal("offline template configuration validation failed")
+		}
+		return
+	}
+	directory := os.Getenv("KANDEV_PLUGIN_DATA_DIR")
+	if directory == "" {
+		log.Fatal("plugin data directory is required")
+	}
+	store, err := OpenSnapshotStore(directory)
+	if err != nil {
+		log.Fatal("template storage unavailable")
+	}
+	defer func() { _ = store.Close() }()
+	pluginsdk.Serve(&formatterPlugin{store: store})
 }
