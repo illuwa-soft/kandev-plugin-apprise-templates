@@ -16,6 +16,7 @@ test("capture holds one bounded lease, validates the full set, and rejects expir
 import datetime, hashlib, http.server, importlib.util, json, os, pathlib, sqlite3, stat, subprocess, sys, threading
 from unittest import mock
 root, script, validator = pathlib.Path(sys.argv[1]),sys.argv[2],sys.argv[3]
+sys.dont_write_bytecode=True
 configuration='{"version":1,"origin":"","templates":{}}'
 digest=hashlib.sha256(configuration.encode()).hexdigest()
 with sqlite3.connect(root/'host.db') as db:
