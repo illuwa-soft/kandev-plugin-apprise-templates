@@ -30,7 +30,12 @@ export function createEditorController(options) {
     state = { ...state, ...patch };
     for (const listener of listeners) listener(state);
   }
-  const invoke = (key, body) => options.invoke(key, { notificationProviderId: options.provider.id, body }, { signal: lifecycle.signal });
+  const invoke = (key, body) => options.invoke(key, {
+    notificationProviderId: options.provider.id,
+    notificationFormatter: { installationId: options.formatter.installation_id, formatterKey: options.formatter.key,
+      expectedBindingRevision: state.bindingRevision, mode: state.active ? "active" : "candidate" },
+    body,
+  }, { signal: lifecycle.signal });
   function ensureLive(signal) {
     if (signal.aborted || signal !== lifecycle.signal) throw Object.assign(new Error("editor operation cancelled"), { name: "AbortError" });
   }

@@ -60,7 +60,11 @@ func sessionURL(origin, task, session string) string {
 	if session == "" || task == "" || origin == "" {
 		return ""
 	}
-	return taskURL(origin, task) + "?" + url.Values{"sessionId": {session}}.Encode()
+	base := taskURL(origin, task)
+	if base == "" {
+		return ""
+	}
+	return base + "?" + url.Values{"sessionId": {session}}.Encode()
 }
 
 func releaseURL(raw string) string {

@@ -91,7 +91,13 @@ def verify(manifest_path, validator):
     validator = Path(validator)
     if not validator.is_absolute() or digest_file(validator) != manifest["validator_sha256"]:
         raise ValueError("explicit runtime validator does not match its pin")
-    subprocess.run([str(validator), "--verify-offline-store", str(files["plugin_database"])],
+    arguments = [str(validator), "--verify-offline-store", str(files["plugin_database"])]
+    installation_checked = "plugin_record" in files
+    if installation_checked:
+        if manifest["files"]["plugin_binary"]["sha256"] != manifest["validator_sha256"]:
+            raise ValueError("runtime validator and backup executable pins differ")
+        arguments.append(str(manifest_path))
+    subprocess.run(arguments,
                    check=True, capture_output=True, timeout=60)
     if len(set(files.values())) != len(files):
         raise ValueError("backup roles must reference distinct files")
@@ -104,7 +110,8 @@ def verify(manifest_path, validator):
         checked_file(manifest_path.parent, item)
     if digest_file(manifest_path) != manifest_digest:
         raise ValueError("backup manifest changed during verification")
-    return {"verified_bindings": count, "verified_files": len(files), "manifest_sha256": manifest_digest}
+    return {"verified_bindings": count, "verified_files": len(files), "manifest_sha256": manifest_digest,
+            "installation_checked": installation_checked}
 
 
 if __name__ == "__main__":

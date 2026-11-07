@@ -8,9 +8,14 @@ import (
 )
 
 func main() {
-	if len(os.Args) == 3 && os.Args[1] == "--verify-offline-store" {
+	if (len(os.Args) == 3 || len(os.Args) == 4) && os.Args[1] == "--verify-offline-store" {
 		if err := verifyOfflineStore(os.Args[2]); err != nil {
 			log.Fatal("offline template configuration validation failed")
+		}
+		if len(os.Args) == 4 {
+			if err := verifyBackupInstallation(os.Args[3]); err != nil {
+				log.Fatal("offline installation reference validation failed")
+			}
 		}
 		return
 	}

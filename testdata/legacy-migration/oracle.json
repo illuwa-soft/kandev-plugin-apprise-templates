@@ -1,0 +1,576 @@
+{
+  "Cases": [
+    {
+      "Name": "session.turn_finished/literal",
+      "Event": "session.turn_finished",
+      "Title": "{{event.type}}",
+      "Body": "{{default.body}}",
+      "ExpectedTitle": "session.turn_finished",
+      "ExpectedBody": "Synthetic 본문 {{not_reparsed}}",
+      "Values": {
+        "default.body": "Synthetic 본문 {{not_reparsed}}",
+        "event.type": "session.turn_finished"
+      },
+      "Fallback": false
+    },
+    {
+      "Name": "session.turn_finished/missing",
+      "Event": "session.turn_finished",
+      "Title": "{{event.type}}",
+      "Body": "{{default.body}}",
+      "ExpectedTitle": "",
+      "ExpectedBody": "",
+      "Values": {
+        "event.type": "session.turn_finished"
+      },
+      "Fallback": true
+    },
+    {
+      "Name": "session.turn_finished/escape",
+      "Event": "session.turn_finished",
+      "Title": "{{event.type}}",
+      "Body": "\\{\\{literal\\}\\} \\\\ {{ event.type }}",
+      "ExpectedTitle": "session.turn_finished",
+      "ExpectedBody": "{{literal}} \\ session.turn_finished",
+      "Values": {
+        "default.body": "Synthetic 본문 {{not_reparsed}}",
+        "event.type": "session.turn_finished"
+      },
+      "Fallback": false
+    },
+    {
+      "Name": "session.turn_finished/unknown-variable",
+      "Event": "session.turn_finished",
+      "Title": "{{event.type}}",
+      "Body": "{{receiver.secret}}",
+      "ExpectedTitle": "",
+      "ExpectedBody": "",
+      "Values": {
+        "default.body": "Synthetic 본문 {{not_reparsed}}",
+        "event.type": "session.turn_finished"
+      },
+      "Fallback": true
+    },
+    {
+      "Name": "session.turn_finished/value-injection",
+      "Event": "session.turn_finished",
+      "Title": "{{event.type}}",
+      "Body": "{{default.body}}",
+      "ExpectedTitle": "session.turn_finished",
+      "ExpectedBody": "<b>literal</b> {{task.id}}; $(ignored)",
+      "Values": {
+        "default.body": "<b>literal</b> {{task.id}}; $(ignored)",
+        "event.type": "session.turn_finished"
+      },
+      "Fallback": false
+    },
+    {
+      "Name": "session.turn_finished/missing-origin",
+      "Event": "session.turn_finished",
+      "Title": "{{event.type}}",
+      "Body": "{{event.url}}",
+      "ExpectedTitle": "",
+      "ExpectedBody": "",
+      "Values": {
+        "default.body": "Synthetic 본문 {{not_reparsed}}",
+        "event.type": "session.turn_finished"
+      },
+      "Fallback": true
+    },
+    {
+      "Name": "session.clarification_requested/literal",
+      "Event": "session.clarification_requested",
+      "Title": "{{event.type}}",
+      "Body": "{{default.body}}",
+      "ExpectedTitle": "session.clarification_requested",
+      "ExpectedBody": "Synthetic 본문 {{not_reparsed}}",
+      "Values": {
+        "default.body": "Synthetic 본문 {{not_reparsed}}",
+        "event.type": "session.clarification_requested"
+      },
+      "Fallback": false
+    },
+    {
+      "Name": "session.clarification_requested/missing",
+      "Event": "session.clarification_requested",
+      "Title": "{{event.type}}",
+      "Body": "{{default.body}}",
+      "ExpectedTitle": "",
+      "ExpectedBody": "",
+      "Values": {
+        "event.type": "session.clarification_requested"
+      },
+      "Fallback": true
+    },
+    {
+      "Name": "session.clarification_requested/escape",
+      "Event": "session.clarification_requested",
+      "Title": "{{event.type}}",
+      "Body": "\\{\\{literal\\}\\} \\\\ {{ event.type }}",
+      "ExpectedTitle": "session.clarification_requested",
+      "ExpectedBody": "{{literal}} \\ session.clarification_requested",
+      "Values": {
+        "default.body": "Synthetic 본문 {{not_reparsed}}",
+        "event.type": "session.clarification_requested"
+      },
+      "Fallback": false
+    },
+    {
+      "Name": "session.clarification_requested/unknown-variable",
+      "Event": "session.clarification_requested",
+      "Title": "{{event.type}}",
+      "Body": "{{receiver.secret}}",
+      "ExpectedTitle": "",
+      "ExpectedBody": "",
+      "Values": {
+        "default.body": "Synthetic 본문 {{not_reparsed}}",
+        "event.type": "session.clarification_requested"
+      },
+      "Fallback": true
+    },
+    {
+      "Name": "session.clarification_requested/value-injection",
+      "Event": "session.clarification_requested",
+      "Title": "{{event.type}}",
+      "Body": "{{default.body}}",
+      "ExpectedTitle": "session.clarification_requested",
+      "ExpectedBody": "<b>literal</b> {{task.id}}; $(ignored)",
+      "Values": {
+        "default.body": "<b>literal</b> {{task.id}}; $(ignored)",
+        "event.type": "session.clarification_requested"
+      },
+      "Fallback": false
+    },
+    {
+      "Name": "session.clarification_requested/missing-origin",
+      "Event": "session.clarification_requested",
+      "Title": "{{event.type}}",
+      "Body": "{{event.url}}",
+      "ExpectedTitle": "",
+      "ExpectedBody": "",
+      "Values": {
+        "default.body": "Synthetic 본문 {{not_reparsed}}",
+        "event.type": "session.clarification_requested"
+      },
+      "Fallback": true
+    },
+    {
+      "Name": "office.inbox_item/literal",
+      "Event": "office.inbox_item",
+      "Title": "{{event.type}}",
+      "Body": "{{default.body}}",
+      "ExpectedTitle": "office.inbox_item",
+      "ExpectedBody": "Synthetic 본문 {{not_reparsed}}",
+      "Values": {
+        "default.body": "Synthetic 본문 {{not_reparsed}}",
+        "event.type": "office.inbox_item"
+      },
+      "Fallback": false
+    },
+    {
+      "Name": "office.inbox_item/missing",
+      "Event": "office.inbox_item",
+      "Title": "{{event.type}}",
+      "Body": "{{default.body}}",
+      "ExpectedTitle": "",
+      "ExpectedBody": "",
+      "Values": {
+        "event.type": "office.inbox_item"
+      },
+      "Fallback": true
+    },
+    {
+      "Name": "office.inbox_item/escape",
+      "Event": "office.inbox_item",
+      "Title": "{{event.type}}",
+      "Body": "\\{\\{literal\\}\\} \\\\ {{ event.type }}",
+      "ExpectedTitle": "office.inbox_item",
+      "ExpectedBody": "{{literal}} \\ office.inbox_item",
+      "Values": {
+        "default.body": "Synthetic 본문 {{not_reparsed}}",
+        "event.type": "office.inbox_item"
+      },
+      "Fallback": false
+    },
+    {
+      "Name": "office.inbox_item/unknown-variable",
+      "Event": "office.inbox_item",
+      "Title": "{{event.type}}",
+      "Body": "{{receiver.secret}}",
+      "ExpectedTitle": "",
+      "ExpectedBody": "",
+      "Values": {
+        "default.body": "Synthetic 본문 {{not_reparsed}}",
+        "event.type": "office.inbox_item"
+      },
+      "Fallback": true
+    },
+    {
+      "Name": "office.inbox_item/value-injection",
+      "Event": "office.inbox_item",
+      "Title": "{{event.type}}",
+      "Body": "{{default.body}}",
+      "ExpectedTitle": "office.inbox_item",
+      "ExpectedBody": "<b>literal</b> {{task.id}}; $(ignored)",
+      "Values": {
+        "default.body": "<b>literal</b> {{task.id}}; $(ignored)",
+        "event.type": "office.inbox_item"
+      },
+      "Fallback": false
+    },
+    {
+      "Name": "office.inbox_item/missing-origin",
+      "Event": "office.inbox_item",
+      "Title": "{{event.type}}",
+      "Body": "{{event.url}}",
+      "ExpectedTitle": "",
+      "ExpectedBody": "",
+      "Values": {
+        "default.body": "Synthetic 본문 {{not_reparsed}}",
+        "event.type": "office.inbox_item"
+      },
+      "Fallback": true
+    },
+    {
+      "Name": "system.update_available/literal",
+      "Event": "system.update_available",
+      "Title": "{{event.type}}",
+      "Body": "{{default.body}}",
+      "ExpectedTitle": "system.update_available",
+      "ExpectedBody": "Synthetic 본문 {{not_reparsed}}",
+      "Values": {
+        "default.body": "Synthetic 본문 {{not_reparsed}}",
+        "event.type": "system.update_available"
+      },
+      "Fallback": false
+    },
+    {
+      "Name": "system.update_available/missing",
+      "Event": "system.update_available",
+      "Title": "{{event.type}}",
+      "Body": "{{default.body}}",
+      "ExpectedTitle": "",
+      "ExpectedBody": "",
+      "Values": {
+        "event.type": "system.update_available"
+      },
+      "Fallback": true
+    },
+    {
+      "Name": "system.update_available/escape",
+      "Event": "system.update_available",
+      "Title": "{{event.type}}",
+      "Body": "\\{\\{literal\\}\\} \\\\ {{ event.type }}",
+      "ExpectedTitle": "system.update_available",
+      "ExpectedBody": "{{literal}} \\ system.update_available",
+      "Values": {
+        "default.body": "Synthetic 본문 {{not_reparsed}}",
+        "event.type": "system.update_available"
+      },
+      "Fallback": false
+    },
+    {
+      "Name": "system.update_available/unknown-variable",
+      "Event": "system.update_available",
+      "Title": "{{event.type}}",
+      "Body": "{{receiver.secret}}",
+      "ExpectedTitle": "",
+      "ExpectedBody": "",
+      "Values": {
+        "default.body": "Synthetic 본문 {{not_reparsed}}",
+        "event.type": "system.update_available"
+      },
+      "Fallback": true
+    },
+    {
+      "Name": "system.update_available/value-injection",
+      "Event": "system.update_available",
+      "Title": "{{event.type}}",
+      "Body": "{{default.body}}",
+      "ExpectedTitle": "system.update_available",
+      "ExpectedBody": "<b>literal</b> {{task.id}}; $(ignored)",
+      "Values": {
+        "default.body": "<b>literal</b> {{task.id}}; $(ignored)",
+        "event.type": "system.update_available"
+      },
+      "Fallback": false
+    },
+    {
+      "Name": "system.update_available/missing-origin",
+      "Event": "system.update_available",
+      "Title": "{{event.type}}",
+      "Body": "{{event.url}}",
+      "ExpectedTitle": "",
+      "ExpectedBody": "",
+      "Values": {
+        "default.body": "Synthetic 본문 {{not_reparsed}}",
+        "event.type": "system.update_available"
+      },
+      "Fallback": true
+    },
+    {
+      "Name": "title-output-boundary",
+      "Event": "session.turn_finished",
+      "Title": "{{task.title}}",
+      "Body": "Body",
+      "ExpectedTitle": "",
+      "ExpectedBody": "Body",
+      "TitleDigest": "1d1801f753ccd9fa57966c46f360585caf83337a394a5f238d4e4e7d6005788d",
+      "Values": {
+        "event.type": "session.turn_finished"
+      },
+      "Repeat": {
+        "task.title": 2048
+      },
+      "Fallback": false
+    },
+    {
+      "Name": "title-output-overflow",
+      "Event": "session.turn_finished",
+      "Title": "{{task.title}}",
+      "Body": "Body",
+      "ExpectedTitle": "",
+      "ExpectedBody": "",
+      "Values": {
+        "event.type": "session.turn_finished"
+      },
+      "Repeat": {
+        "task.title": 2049
+      },
+      "Fallback": true
+    },
+    {
+      "Name": "body-output-boundary",
+      "Event": "session.turn_finished",
+      "Title": "Title",
+      "Body": "{{default.body}}",
+      "ExpectedTitle": "Title",
+      "ExpectedBody": "",
+      "BodyDigest": "1f8745f0d2d1387ec1af2211a3cf417b2e9e885e853472649c1d979d0e9370e3",
+      "Values": {
+        "event.type": "session.turn_finished"
+      },
+      "Repeat": {
+        "default.body": 65536
+      },
+      "Fallback": false
+    },
+    {
+      "Name": "body-output-overflow",
+      "Event": "session.turn_finished",
+      "Title": "Title",
+      "Body": "{{default.body}}",
+      "ExpectedTitle": "",
+      "ExpectedBody": "",
+      "Values": {
+        "event.type": "session.turn_finished"
+      },
+      "Repeat": {
+        "default.body": 65537
+      },
+      "Fallback": true
+    },
+    {
+      "Name": "title-newline-value",
+      "Event": "session.turn_finished",
+      "Title": "{{task.title}}",
+      "Body": "Body",
+      "ExpectedTitle": "",
+      "ExpectedBody": "",
+      "Values": {
+        "task.title": "line\nbreak"
+      },
+      "Fallback": true
+    },
+    {
+      "Name": "unsupported-event",
+      "Event": "unknown.event",
+      "Title": "Title",
+      "Body": "Body",
+      "ExpectedTitle": "",
+      "ExpectedBody": "",
+      "Values": {
+        "event.type": "unknown.event"
+      },
+      "Fallback": true
+    },
+    {
+      "Name": "tab-in-placeholder",
+      "Event": "session.turn_finished",
+      "Title": "Title",
+      "Body": "{{\tevent.type}}",
+      "ExpectedTitle": "",
+      "ExpectedBody": "",
+      "Values": {
+        "event.type": "session.turn_finished"
+      },
+      "Fallback": true
+    },
+    {
+      "Name": "placeholder-budget",
+      "Event": "session.turn_finished",
+      "Title": "Title",
+      "Body": "{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}{{event.type}}",
+      "ExpectedTitle": "",
+      "ExpectedBody": "",
+      "Values": {
+        "event.type": "session.turn_finished"
+      },
+      "Fallback": true
+    },
+    {
+      "Name": "runtime/available",
+      "Event": "system.update_available",
+      "Title": "{{update.agent_name}} {{update.status}}",
+      "Body": "{{update.previous_version}} -> {{update.version}} {{event.url}}",
+      "ExpectedTitle": "Synthetic Agent available",
+      "ExpectedBody": "1.0.0 -> 2.0.0 https://example.invalid/settings/agents#runtime-update-fixture",
+      "Values": {
+        "event.url": "https://example.invalid/settings/agents#runtime-update-fixture",
+        "update.agent_name": "Synthetic Agent",
+        "update.previous_version": "1.0.0",
+        "update.status": "available",
+        "update.version": "2.0.0"
+      },
+      "Fallback": false
+    },
+    {
+      "Name": "runtime/succeeded",
+      "Event": "system.update_available",
+      "Title": "{{update.agent_name}} {{update.status}}",
+      "Body": "{{update.previous_version}} -> {{update.version}} {{event.url}}",
+      "ExpectedTitle": "Synthetic Agent succeeded",
+      "ExpectedBody": "1.0.0 -> 2.0.0 https://example.invalid/settings/agents#runtime-update-fixture",
+      "Values": {
+        "event.url": "https://example.invalid/settings/agents#runtime-update-fixture",
+        "update.agent_name": "Synthetic Agent",
+        "update.previous_version": "1.0.0",
+        "update.status": "succeeded",
+        "update.version": "2.0.0"
+      },
+      "Fallback": false
+    },
+    {
+      "Name": "runtime/failed",
+      "Event": "system.update_available",
+      "Title": "{{update.agent_name}} {{update.status}}",
+      "Body": "{{update.previous_version}} -> {{update.version}} {{event.url}}",
+      "ExpectedTitle": "Synthetic Agent failed",
+      "ExpectedBody": "1.0.0 -> 2.0.0 https://example.invalid/settings/agents#runtime-update-fixture",
+      "Values": {
+        "event.url": "https://example.invalid/settings/agents#runtime-update-fixture",
+        "update.agent_name": "Synthetic Agent",
+        "update.previous_version": "1.0.0",
+        "update.status": "failed",
+        "update.version": "2.0.0"
+      },
+      "Fallback": false
+    },
+    {
+      "Name": "runtime/interrupted",
+      "Event": "system.update_available",
+      "Title": "{{update.agent_name}} {{update.status}}",
+      "Body": "{{update.previous_version}} -> {{update.version}} {{event.url}}",
+      "ExpectedTitle": "Synthetic Agent interrupted",
+      "ExpectedBody": "1.0.0 -> 2.0.0 https://example.invalid/settings/agents#runtime-update-fixture",
+      "Values": {
+        "event.url": "https://example.invalid/settings/agents#runtime-update-fixture",
+        "update.agent_name": "Synthetic Agent",
+        "update.previous_version": "1.0.0",
+        "update.status": "interrupted",
+        "update.version": "2.0.0"
+      },
+      "Fallback": false
+    },
+    {
+      "Name": "runtime/summary",
+      "Event": "system.update_available",
+      "Title": "{{update.count}} {{update.status}}",
+      "Body": "{{event.url}}",
+      "ExpectedTitle": "3 available",
+      "ExpectedBody": "https://example.invalid/settings/agents#runtime-updates",
+      "Values": {
+        "event.url": "https://example.invalid/settings/agents#runtime-updates",
+        "update.count": "3",
+        "update.status": "available"
+      },
+      "Fallback": false
+    },
+    {
+      "Name": "release/kandev",
+      "Event": "system.update_available",
+      "Title": "{{update.kind}} {{update.version}}",
+      "Body": "{{release.url}}",
+      "ExpectedTitle": "kandev 0.99.1",
+      "ExpectedBody": "https://example.invalid/releases/v0.99.1",
+      "Values": {
+        "release.url": "https://example.invalid/releases/v0.99.1",
+        "update.kind": "kandev",
+        "update.version": "0.99.1"
+      },
+      "Fallback": false
+    }
+  ],
+  "SourceRevision": "15495808e383c0af926a617b54cd8b2adacd9db3",
+  "URLs": [
+    {
+      "Origin": "https://example.invalid/",
+      "Task": "task /?#한글",
+      "Session": "session +&=?",
+      "Release": "https://example.invalid/releases/v1?q=x",
+      "TaskURL": "https://example.invalid/t/task%20%2F%3F%23%ED%95%9C%EA%B8%80",
+      "SessionURL": "https://example.invalid/t/task%20%2F%3F%23%ED%95%9C%EA%B8%80?sessionId=session+%2B%26%3D%3F",
+      "ReleaseURL": "https://example.invalid/releases/v1?q=x"
+    },
+    {
+      "Origin": "",
+      "Task": "task",
+      "Session": "session",
+      "Release": "",
+      "TaskURL": "",
+      "SessionURL": "",
+      "ReleaseURL": ""
+    },
+    {
+      "Origin": "http://127.0.0.1:38429",
+      "Task": "task",
+      "Session": "session",
+      "Release": "",
+      "TaskURL": "http://127.0.0.1:38429/t/task",
+      "SessionURL": "http://127.0.0.1:38429/t/task?sessionId=session",
+      "ReleaseURL": ""
+    },
+    {
+      "Origin": "http://public.invalid",
+      "Task": "task",
+      "Session": "session",
+      "Release": "https://user:secret@example.invalid/x",
+      "TaskURL": "",
+      "SessionURL": "",
+      "ReleaseURL": ""
+    },
+    {
+      "Origin": "https://example.invalid",
+      "Task": "task",
+      "Session": "",
+      "Release": "",
+      "TaskURL": "https://example.invalid/t/task",
+      "SessionURL": "",
+      "ReleaseURL": ""
+    },
+    {
+      "Origin": "https://example.invalid",
+      "Task": "",
+      "Session": "session",
+      "Release": "",
+      "TaskURL": "",
+      "SessionURL": "",
+      "ReleaseURL": ""
+    }
+  ],
+  "Sources": {
+    "apps/backend/internal/notifications/templates/renderer.go": "25cd3bb33b07c40e27003bc44b040a5a8c6ec0500fc8ba40fcb21d378815c211",
+    "apps/backend/internal/notifications/templates/urls.go": "e60e45679af2c4518760f4b62a73c5390d5e18f1caf0e1fa2bc7357c74e92cff",
+    "apps/backend/internal/common/weburl/origin.go": "50ee94520884401c6c1230b0ad28562bd7dcc0216de194af98b05336184d70fc"
+  }
+}

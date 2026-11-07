@@ -79,6 +79,7 @@ func (p *formatterPlugin) HandleAction(ctx context.Context, req *pluginsdk.Plugi
 	case "templates.get", "templates.export":
 		var input struct {
 			Revision string `json:"revision"`
+			Target   string `json:"target,omitempty"`
 		}
 		if err := decodeActionBody(req.Body, &input); err != nil {
 			return invalidAction()
@@ -88,7 +89,14 @@ func (p *formatterPlugin) HandleAction(ctx context.Context, req *pluginsdk.Plugi
 			if err != nil {
 				return snapshotAction(nil, err)
 			}
-			return actionResult(http.StatusOK, map[string]any{"schema": 1, "source_owner_id": owner, "source_provider_id": provider, "source_revision": snapshot.Revision, "source_digest": snapshot.Digest, "configuration": snapshot.Configuration})
+			value, err := exportConfiguration(owner, provider, snapshot, input.Target)
+			if err != nil {
+				return invalidAction()
+			}
+			return actionResult(http.StatusOK, value)
+		}
+		if input.Target != "" {
+			return invalidAction()
 		}
 		return p.readConfigurationAction(ctx, owner, provider, input.Revision)
 	case "templates.prepare", "templates.import":

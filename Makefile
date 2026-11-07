@@ -36,7 +36,7 @@ run: build
 test: test-backend typecheck-recipes test-recipes test-ui test-package-verifier test-release-version test-native-snapshot
 
 test-native-snapshot:
-	node --test tests/native-snapshot.test.mjs tests/backup-set.test.mjs
+	node --test tests/native-snapshot.test.mjs tests/backup-set.test.mjs tests/capture-backup-set.test.mjs
 
 test-backend:
 	go test -trimpath ./server/... ./cmd/... ./recipes/source-control/server/...
