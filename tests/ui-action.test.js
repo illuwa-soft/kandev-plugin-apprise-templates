@@ -1,110 +1,36 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFile } from "node:fs/promises";
+import vm from "node:vm";
 
-let importCount = 0;
-
-function element(type, props, ...children) {
-  return { type, props: props || {}, children };
-}
-
-async function loadPlugin({ action, i18n = true }) {
-  let pluginId;
+test("the product registers only its owned formatter editor and complete locale catalogs", async () => {
   let definition;
-  Object.defineProperty(globalThis, "window", {
-    configurable: true,
-    value: {
-      registerKandevPlugin(id, pluginDefinition) {
-        pluginId = id;
-        definition = pluginDefinition;
-      },
-    },
+  const context = vm.createContext({ window: { registerKandevPlugin(id, value) {
+    assert.equal(id, "kandev-plugin-apprise-templates"); definition = value;
+  } } });
+  const entry = new vm.SourceTextModule(await readFile(new URL("../ui/bundle.js", import.meta.url), "utf8"), {
+    context, identifier: "https://example.invalid/api/plugins/kandev-plugin-apprise-templates/bundle?v=0.1.0",
   });
-  Object.defineProperty(globalThis, "navigator", {
-    configurable: true,
-    value: { platform: "Linux" },
+  await entry.link(async (specifier, parent) => {
+    const remote = new URL(specifier, parent.identifier);
+    assert.match(remote.pathname, /^\/api\/plugins\/kandev-plugin-apprise-templates\/ui\/ui\/(editor-controller|translations)\.js$/);
+    assert.equal(remote.searchParams.get("v"), "0.1.0");
+    const name = remote.pathname.split("/").at(-1);
+    return new vm.SourceTextModule(await readFile(new URL(`../ui/${name}`, import.meta.url), "utf8"), { context, identifier: remote.href });
   });
-
-  await import(new URL(`../ui/bundle.js?action-test=${importCount++}`, import.meta.url));
-
-  const components = [];
-  const navigations = [];
-  const ui = {
-    Button: "Button",
-    Tooltip: "Tooltip",
-    TooltipTrigger: "TooltipTrigger",
-    TooltipContent: "TooltipContent",
-  };
-  if (action) ui.Action = action;
-
-  const host = {
-    jsx: element,
-    ui,
-    navigate(path) {
-      navigations.push(path);
-    },
-  };
-  if (i18n) {
-    host.i18n = {
-      useTranslation() {
-        return {
-          t(key, options) {
-            return `localized:${key}:${options?.defaultValue || ""}`;
-          },
-        };
-      },
-    };
+  await entry.evaluate();
+  const slots = [];
+  let catalogs;
+  definition.initialize({
+    registerTranslations(value) { catalogs = value; },
+    registerComponent(slot, component) { slots.push([slot, component]); },
+  }, { React: {}, ui: {} });
+  assert.equal(slots.length, 1);
+  assert.equal(slots[0][0], "notification-formatter");
+  assert.equal(typeof slots[0][1], "function");
+  const keys = Object.keys(catalogs.en).sort();
+  for (const locale of ["ko", "ja", "pt-pt", "zh-cn", "zh-tw", "zh-hk"]) {
+    assert.deepEqual(Object.keys(catalogs[locale]).sort(), keys, locale);
   }
-
-  const registry = {
-    registerNavItem() {},
-    registerRoute() {},
-    registerWsHandler() {},
-    registerComponent(slot, component) {
-      components.push({ slot, component });
-    },
-  };
-  definition.initialize(registry, host);
-  return { pluginId, components, host, navigations };
-}
-
-function findNodes(node, type) {
-  if (!node || typeof node !== "object") return [];
-  const current = node.type === type ? [node] : [];
-  return current.concat(node.children.flatMap((child) => findNodes(child, type)));
-}
-
-function composerComponent(components) {
-  const registrations = components.filter((entry) => entry.slot === "chat-input-actions");
-  assert.equal(registrations.length, 1, "the composer slot keeps one registration");
-  return registrations[0].component;
-}
-
-test("uses Action once when the host exports it", async () => {
-  function Action() {}
-  const loaded = await loadPlugin({ action: Action });
-  const control = composerComponent(loaded.components)({ slotProps: { taskTitle: "Example task" } });
-
-  assert.equal(loaded.pluginId, "kandev-plugin-template");
-  assert.equal(control.type, Action);
-  assert.equal(control.props.id, "template-chat-action");
-  assert.equal(control.props.label, "localized:openTemplatePage:Template — open page");
-  assert.match(control.props.tooltip, /Example task/);
-  assert.equal(findNodes(control, "Button").length, 0);
-  control.props.onClick();
-  assert.deepEqual(loaded.navigations, ["/template"]);
-});
-
-test("keeps one legacy Button path on a host without Action or i18n", async () => {
-  const loaded = await loadPlugin({ action: null, i18n: false });
-  const control = composerComponent(loaded.components)({ slotProps: { taskId: "task-123" } });
-  const buttons = findNodes(control, "Button");
-
-  assert.equal(loaded.pluginId, "kandev-plugin-template");
-  assert.equal(control.type, "Tooltip");
-  assert.equal(buttons.length, 1);
-  assert.equal(buttons[0].props.id, "template-chat-action");
-  assert.match(buttons[0].props["aria-label"], /task-123/);
-  assert.equal(findNodes(control, "Action").length, 0);
-  buttons[0].props.onClick();
-  assert.deepEqual(loaded.navigations, ["/template"]);
+  definition.destroy();
 });

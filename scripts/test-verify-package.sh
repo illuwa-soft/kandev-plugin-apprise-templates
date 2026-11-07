@@ -21,6 +21,8 @@ runtime:
     windows-amd64: "server/plugin-windows-amd64.exe"
 EOF
 	printf 'export default {}\n' > "$fixture/ui/bundle.js"
+	printf 'export const fixture = true\n' > "$fixture/ui/editor-controller.js"
+	printf 'export const messages = {}\n' > "$fixture/ui/translations.js"
 	for executable in \
 		plugin-linux-amd64 plugin-linux-arm64 \
 		plugin-darwin-amd64 plugin-darwin-arm64 \
@@ -102,7 +104,7 @@ sh "$verify_script" "$serialized" host "$host_platform" >/dev/null
 expect_failure 'host-only manifest in a full archive' "$serialized" full
 expect_failure 'serialized manifest with a different host' "$serialized" host freebsd-amd64
 
-for required in manifest.yaml ui/bundle.js \
+for required in manifest.yaml ui/bundle.js ui/editor-controller.js ui/translations.js \
 	server/plugin-linux-amd64 server/plugin-linux-arm64 \
 	server/plugin-darwin-amd64 server/plugin-darwin-arm64 \
 	server/plugin-windows-amd64.exe; do

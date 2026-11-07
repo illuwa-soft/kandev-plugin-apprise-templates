@@ -2,12 +2,13 @@
 
 .PHONY: build run test test-backend test-recipes test-ui test-package-verifier \
 	test-release-version typecheck-recipes audit-recipes check-format fmt vet \
-	sdk-check package package-host package-file verify-package verify-package-host clean
+	sdk-check package package-host package-file verify-package verify-package-host clean \
+	test-native-snapshot development-sdk dev-test dev-package-host
 
 # When you rename the plugin, update BIN and VERSION to match manifest.yaml's
 # id and version (PKG_OUT is derived from them).
-BIN := bin/kandev-plugin-template
-VERSION := 0.3.0
+BIN := bin/kandev-plugin-apprise-templates
+VERSION := 0.1.0
 STAGE := .build/stage
 PKG_OUT := $(notdir $(BIN))-$(VERSION).tar.gz
 
@@ -32,10 +33,13 @@ build: sdk-check
 run: build
 	./$(BIN)
 
-test: test-backend typecheck-recipes test-recipes test-ui test-package-verifier test-release-version
+test: test-backend typecheck-recipes test-recipes test-ui test-package-verifier test-release-version test-native-snapshot
+
+test-native-snapshot:
+	node --test tests/native-snapshot.test.mjs tests/backup-set.test.mjs tests/capture-backup-set.test.mjs
 
 test-backend:
-	go test ./server/... ./recipes/source-control/server/...
+	go test -trimpath ./server/... ./cmd/... ./recipes/source-control/server/...
 
 test-recipes:
 	npm run test:recipes
@@ -56,13 +60,13 @@ audit-recipes:
 	npm audit --audit-level=high
 
 fmt:
-	gofmt -l server recipes
+	gofmt -l server cmd recipes
 
 check-format:
-	@test -z "$$(gofmt -l server recipes)" || { echo "gofmt needed:"; gofmt -l server recipes; exit 1; }
+	@test -z "$$(gofmt -l server cmd recipes)" || { echo "gofmt needed:"; gofmt -l server cmd recipes; exit 1; }
 
 vet:
-	go vet ./server/... ./recipes/source-control/server/...
+	go vet ./server/... ./cmd/... ./recipes/source-control/server/...
 
 ## Cross-compile server/plugin-<goos>-<goarch>[.exe] for every platform in
 ## manifest.yaml's runtime.executables, stage manifest.yaml + ui/ alongside
@@ -78,21 +82,41 @@ package: sdk-check
 	CGO_ENABLED=0 GOOS=darwin  GOARCH=amd64 go build -o $(STAGE)/server/plugin-darwin-amd64      ./server
 	CGO_ENABLED=0 GOOS=darwin  GOARCH=arm64 go build -o $(STAGE)/server/plugin-darwin-arm64      ./server
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o $(STAGE)/server/plugin-windows-amd64.exe ./server
-	cd "$(KANDEV_TOOLING)" && go run ./cmd/plugin-pack -dir $(CURDIR)/$(STAGE) -out $(CURDIR)/$(PKG_OUT)
+	cd "$(KANDEV_TOOLING)" && GOWORK=off go run ./cmd/plugin-pack -dir $(CURDIR)/$(STAGE) -out $(CURDIR)/$(PKG_OUT)
 	rm -rf $(STAGE)
 	@echo "Wrote $(PKG_OUT)"
 
 ## Package for the host platform only — faster local iteration than the full
 ## 5-platform `make package` (matches plugin-pack's -platform-only).
 package-host: sdk-check
+	$(MAKE) _package-host
+
+_package-host:
 	rm -rf $(STAGE)
 	mkdir -p $(STAGE)/server
 	cp manifest.yaml $(STAGE)/manifest.yaml
 	cp -r ui $(STAGE)/ui
 	go build -o $(STAGE)/server/plugin-$$(go env GOOS)-$$(go env GOARCH)$$(go env GOEXE) ./server
-	cd "$(KANDEV_TOOLING)" && go run ./cmd/plugin-pack -dir $(CURDIR)/$(STAGE) -out $(CURDIR)/$(PKG_OUT) -platform-only
+	cd "$(KANDEV_TOOLING)" && GOWORK=off go run ./cmd/plugin-pack -dir $(CURDIR)/$(STAGE) -out $(CURDIR)/$(PKG_OUT) -platform-only
 	rm -rf $(STAGE)
 	@echo "Wrote $(PKG_OUT)"
+
+# Explicit private development lane for the coordinated, unreleased Host API.
+# Normal build/package/release paths retain the published SDK checks above.
+development-sdk:
+	node scripts/prepare-development-sdk.mjs "$(KANDEV_FORMATTER_SOURCE)"
+
+dev-test: export GOWORK = $(CURDIR)/.build/development.go.work
+dev-test: development-sdk
+	$(MAKE) test-native-snapshot
+	GOWORK="$(CURDIR)/.build/development.go.work" go test -trimpath -race ./server/... ./cmd/... ./recipes/source-control/server/...
+	npm run test:ui
+
+dev-package-host: development-sdk
+	GOWORK="$(CURDIR)/.build/development.go.work" $(MAKE) _package-host KANDEV_TOOLING="$(KANDEV_FORMATTER_SOURCE)/apps/backend"
+	@set -eu; tmp="$$(mktemp -d)"; trap 'rm -rf "$$tmp"' EXIT; \
+		tar -xzf "$(PKG_OUT)" -C "$$tmp"; \
+		sh scripts/verify-package.sh "$$tmp" host "$$(go env GOOS)-$$(go env GOARCH)"
 
 ## Build and validate the all-platform archive: plugin-pack checks the manifest;
 ## this additionally verifies checksums, expected binaries, and that opt-in
