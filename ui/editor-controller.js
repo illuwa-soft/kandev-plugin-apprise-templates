@@ -12,8 +12,10 @@ export function createEditorController(options) {
   let previewAbort;
   let lifecycle = new AbortController();
   let loadGeneration = 0;
-  let draftGeneration = 0;
+  let pendingLoadEdits = new Map();
+  let pendingImportEdits = null;
   let writeGeneration = 0;
+  let snapshotGeneration = 0;
   let uncertainActivation = null;
   let baseline = JSON.stringify(emptyConfiguration());
   let prepared = null;
@@ -41,13 +43,31 @@ export function createEditorController(options) {
   }
   const dirty = () => JSON.stringify(state.configuration) !== baseline || (!state.active && !prepared) ||
     (state.active && Boolean(prepared && prepared.snapshot.revision !== state.appliedRevision));
-  function adopt(snapshot, catalog) {
+  function editConfiguration(key, update) {
+    previewGeneration++;
+    previewAbort?.abort();
+    for (const edits of [!state.loaded ? pendingLoadEdits : null, pendingImportEdits]) {
+      if (!edits) continue;
+      edits.delete(key);
+      edits.set(key, update);
+    }
+    publish({ preview: null, configuration: update(state.configuration) });
+  }
+  function catalogState(catalog) {
+    const event = catalog.events.includes(state.event) ? state.event : catalog.events[0];
+    return { events: catalog.events, variables: catalog.variables, event, loaded: true };
+  }
+  const mergeEdits = (configuration, edits) => [...edits.values()].reduce(
+    (current, update) => update(current), structuredClone(configuration),
+  );
+  function adopt(snapshot, catalog, edits) {
     const candidate = snapshot.latest_prepared ?? snapshot;
     baseline = JSON.stringify(candidate.configuration);
     prepared = candidate.revision ? { snapshot: candidate, raw: baseline } : null;
-    const event = catalog.events.includes(state.event) ? state.event : catalog.events[0];
-    publish({ configuration: structuredClone(candidate.configuration), events: catalog.events,
-      variables: catalog.variables, event, loaded: true, notice: candidate.revision && candidate.revision !== state.appliedRevision ? "prepared" : (state.active ? "active" : "ready") });
+    const configuration = mergeEdits(candidate.configuration, edits);
+    pendingLoadEdits = new Map();
+    publish({ ...catalogState(catalog), configuration,
+      notice: candidate.revision && candidate.revision !== state.appliedRevision ? "prepared" : (state.active ? "active" : "ready") });
   }
   function applied(binding, submitted) {
     observedBinding = binding;
@@ -99,29 +119,32 @@ export function createEditorController(options) {
     },
     async load() {
       const generation = ++loadGeneration;
+      const snapshotAtStart = snapshotGeneration;
+      const edits = state.loaded ? new Map() : pendingLoadEdits;
+      pendingLoadEdits = edits;
+      publish({ loaded: false, notice: "loading" });
       try {
         const revision = ownsBinding(options, observedBinding) ? observedBinding.configuration_revision : "";
         const [snapshot, catalog] = await Promise.all([
           invoke("templates.get", { revision }), invoke("templates.catalog", {}),
         ]);
-        if (generation === loadGeneration) adopt(snapshot, catalog);
+        if (generation === loadGeneration) {
+          if (snapshotAtStart === snapshotGeneration) adopt(snapshot, catalog, edits);
+          else publish(catalogState(catalog));
+        }
       } catch {
         if (generation === loadGeneration) publish({ notice: "loadError", loaded: false });
       }
     },
     editTemplate(field, value) {
-      draftGeneration++;
-      previewGeneration++;
-      previewAbort?.abort();
-      const previous = state.configuration.templates[state.event] ?? { version: 1, title: "{{default.title}}", body: "{{default.body}}" };
-      publish({ preview: null, configuration: { ...state.configuration, templates: {
-        ...state.configuration.templates, [state.event]: { ...previous, [field]: value },
-      } } });
+      const event = state.event;
+      editConfiguration(`${event}:${field}`, (configuration) => {
+        const previous = configuration.templates[event] ?? { version: 1, title: "{{default.title}}", body: "{{default.body}}" };
+        return { ...configuration, templates: { ...configuration.templates, [event]: { ...previous, [field]: value } } };
+      });
     },
     editOrigin(origin) {
-      draftGeneration++;
-      previewGeneration++; previewAbort?.abort();
-      publish({ preview: null, configuration: { ...state.configuration, origin } });
+      editConfiguration("origin", (configuration) => ({ ...configuration, origin }));
     },
     selectEvent(event) {
       previewGeneration++; previewAbort?.abort();
@@ -132,15 +155,16 @@ export function createEditorController(options) {
       publish({ sample, preview: null });
     },
     restore() {
-      draftGeneration++;
-      previewGeneration++; previewAbort?.abort();
-      const templates = { ...state.configuration.templates };
-      delete templates[state.event];
-      const source_revisions = { ...state.configuration.source_revisions };
-      delete source_revisions[state.event];
-      publish({ preview: null, configuration: { ...state.configuration, templates, source_revisions } });
+      const event = state.event;
+      editConfiguration(`${event}:restore`, (configuration) => {
+        const templates = { ...configuration.templates };
+        delete templates[event];
+        const source_revisions = { ...configuration.source_revisions };
+        delete source_revisions[event];
+        return { ...configuration, templates, source_revisions };
+      });
     },
-    discard() { draftGeneration++; previewGeneration++; previewAbort?.abort(); publish({ configuration: JSON.parse(baseline), preview: null }); },
+    discard() { pendingLoadEdits.clear(); pendingImportEdits?.clear(); previewGeneration++; previewAbort?.abort(); publish({ configuration: JSON.parse(baseline), preview: null }); },
     async preview() {
       previewAbort?.abort();
       const generation = ++previewGeneration;
@@ -189,18 +213,28 @@ export function createEditorController(options) {
       if (state.saving) throw new Error("template save is in progress");
       const operation = ++writeGeneration;
       const signal = lifecycle.signal;
-      const generation = ++draftGeneration;
+      const edits = new Map();
+      pendingImportEdits = edits;
       previewGeneration++; previewAbort?.abort();
-      const snapshot = await invoke("templates.import", document);
-      ensureLive(signal);
-      if (operation !== writeGeneration) return;
-      baseline = JSON.stringify(snapshot.configuration);
-      prepared = { snapshot, raw: baseline };
-      publish({ ...(generation === draftGeneration ? { configuration: structuredClone(snapshot.configuration) } : {}), notice: "prepared" });
+      try {
+        const snapshot = await invoke("templates.import", document);
+        ensureLive(signal);
+        if (operation !== writeGeneration) return;
+        snapshotGeneration++;
+        pendingLoadEdits = new Map();
+        baseline = JSON.stringify(snapshot.configuration);
+        prepared = { snapshot, raw: baseline };
+        publish({ configuration: mergeEdits(snapshot.configuration, edits), notice: "prepared" });
+      } finally {
+        if (pendingImportEdits === edits) pendingImportEdits = null;
+      }
     },
     async reload() {
       writeGeneration++;
+      loadGeneration++;
       const signal = lifecycle.signal;
+      pendingLoadEdits = new Map();
+      publish({ loaded: false, notice: "loading" });
       observedBinding = await options.readActiveBinding();
       ensureLive(signal);
       publish({ active: ownsBinding(options, observedBinding), bindingRevision: observedBinding?.revision ?? "",
