@@ -1,0 +1,46 @@
+{
+  "observed_date": "2026-11-11",
+  "lane": "private-development-host",
+  "public_release_verified": false,
+  "platform": "darwin-arm64",
+  "host_source_revision": "801af86298d53e52ad5442d834976bb516d96240",
+  "plugin_source_revision": "b9845ecbb17d5df71645b91c98dbafb2b9c08ee4",
+  "host_vcs_modified": false,
+  "plugin_vcs_modified": false,
+  "host_version": "v0.99.1-17-g801af8629",
+  "host_sha256": "1be82bdfb2b169cf2111358fc7928f0fcf48ad0dd3ff6b79d8c1b8eaf75cb9ed",
+  "archive": "kandev-plugin-apprise-templates-0.1.0.tar.gz",
+  "archive_sha256": "c4917938428e06146eedab91976c8c6fa61fe2db0877505b468991ec742ce655",
+  "packaged_executable_sha256": "092275b59c03620c6a3f3208e1a8efd1aae8bce9a21e497b1a63ac1afab514b6",
+  "sdk_go_tree_sha256": "767d653102fe82d70fbb5b915fa7151929de82d5db3a919e2932460bc7005609",
+  "sdk_frontend_entry_sha256": "06511e12936ca26f3826b1a9509a6186f6ccd46353627c2b0143e071b9166f49",
+  "raw_browser_receipt": {
+    "path": ".build/formatter-browser/receipt.json",
+    "sha256": "31fcb9c62027827593e7d680f02dbba924bddc8641bf51d48843422e04fd772b"
+  },
+  "screenshots": [
+    {
+      "path": ".build/formatter-browser/desktop.png",
+      "sha256": "3e59bad857490e1418b931a9d7b7bd8379e22bc3d81f2fcee095058ced3f614e"
+    },
+    {
+      "path": ".build/formatter-browser/desktop-controls.png",
+      "sha256": "55bb7253b391de86fd3a7e70c46cf5e66f37ec4752e1c07f53aafef92bea4efe"
+    },
+    {
+      "path": ".build/formatter-browser/phone.png",
+      "sha256": "b99fd5276d33045d5a4dea808f9eaffebb3bf3ba4b2917115d7436b5ab288b5f"
+    },
+    {
+      "path": ".build/formatter-browser/phone-controls.png",
+      "sha256": "049206667cc8c98124216933fb4f0c510af62ff6970a05cf3985b98ee00f2ec5"
+    }
+  ],
+  "checks": [
+    "desktop and Pixel 5: six-event previews and whole-pair fallback",
+    "prepare without activation, explicit activation, reload and restore",
+    "disabled synthetic providers and empty subscriptions preserved",
+    "four-template legacy import",
+    "three exact bindings restored in a same-candidate recovery drill"
+  ]
+}

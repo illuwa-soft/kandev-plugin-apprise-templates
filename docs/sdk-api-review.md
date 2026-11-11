@@ -146,10 +146,11 @@ SDKs. It neither skips the formatter checks nor silently selects private sources
 ## Verification and artifact provenance
 
 Implementation commit: `8e656fe` (validation repairs only; the packaged Go/UI
-product sources remain the PR #2 implementation). A clean-checkout package and
-its final browser receipt are the next artifact check. The earlier source-lane
-browser receipt passed both viewports; it must not be substituted for that
-final package's identity. [The maintainer reply](sdk-api-review-reply.md) is a draft, not a posted
+product sources remain the PR #2 implementation). The final package was built
+from clean plugin commit `b9845ecbb17d5df71645b91c98dbafb2b9c08ee4` and
+retested on both viewports after the repairs. This evidence-only follow-up
+changes documentation, not the package inputs. See the
+[digest-linked receipt](sdk-api-review-receipt.json). [The maintainer reply](sdk-api-review-reply.md) is a draft, not a posted
 comment. No push, GitHub comment, release, catalog mutation, or deployment is
 authorized by these local checks.
 
@@ -167,6 +168,7 @@ Completed checks during this review:
 | Host `internal/notifications/service` and `handlers` focused formatter tests | Passed; `httpmw` selection ran no matching tests |
 | Host frontend focused tests with Node `24.22.2`, `--project browser-locales --maxWorkers=1` | 3 files, 38 tests passed (`notification-formatters`, `use-notification-formatter`, `host-api`) |
 | Host `make build-kandev GOFLAGS='-p=2'` and frontend `pnpm run build` | Passed; frontend build reported chunk-size/dynamic-import warnings |
+| Final `make dev-package-host` and formatter browser runner with Node `24.22.2` | Passed host-platform archive validation, both viewports, four-template migration, and three-binding same-candidate recovery |
 | `npm audit --audit-level=high` | Zero vulnerabilities |
 | Shell/JavaScript syntax and `git diff --check` | Passed |
 
@@ -183,3 +185,67 @@ official-minimum-host wrapper has syntax validation only in this macOS session;
 no supporting released SDK/host has passed it. Operational rollback, authenticated
 multi-owner/lifecycle browser coverage, and production runtime continuity remain
 outside this source-only validation.
+
+### Final package and browser evidence
+
+| Identity | Value |
+| --- | --- |
+| Host source SHA | `801af86298d53e52ad5442d834976bb516d96240` |
+| Host reported version | `v0.99.1-17-g801af8629` (local source build) |
+| Host executable SHA-256 | `1be82bdfb2b169cf2111358fc7928f0fcf48ad0dd3ff6b79d8c1b8eaf75cb9ed` |
+| Packaged plugin source SHA | `b9845ecbb17d5df71645b91c98dbafb2b9c08ee4` |
+| Archive | `kandev-plugin-apprise-templates-0.1.0.tar.gz`, host-platform `darwin-arm64` only |
+| Archive SHA-256 | `c4917938428e06146eedab91976c8c6fa61fe2db0877505b468991ec742ce655` |
+| Packaged executable SHA-256 | `092275b59c03620c6a3f3208e1a8efd1aae8bce9a21e497b1a63ac1afab514b6` |
+| Raw browser receipt SHA-256 | `31fcb9c62027827593e7d680f02dbba924bddc8641bf51d48843422e04fd772b` |
+
+`go version -m` on the host and the executable extracted from the archive
+confirmed the exact source revisions above and `vcs.modified=false`. The
+plugin lists `github.com/kdlbs/kandev/pluginsdk (devel)`; the host lists its
+source SDK replacement. This is direct evidence of the private-source lane,
+not a public SDK success.
+
+The clean source SDK receipt records Go tree SHA-256
+`767d653102fe82d70fbb5b915fa7151929de82d5db3a919e2932460bc7005609`
+and frontend entry SHA-256
+`06511e12936ca26f3826b1a9509a6186f6ccd46353627c2b0143e071b9166f49`.
+
+Retained local artifacts (ignored, not uploaded):
+
+- [Raw browser receipt](../.build/formatter-browser/receipt.json).
+- [Desktop editor](../.build/formatter-browser/desktop.png) and
+  [desktop controls](../.build/formatter-browser/desktop-controls.png).
+- [Pixel 5 editor](../.build/formatter-browser/phone.png) and
+  [phone controls](../.build/formatter-browser/phone-controls.png).
+
+The tracked receipt pins each image's digest so a missing local artifact is
+explicit rather than an implied published screenshot. The older images under
+`docs/images/formatter/` remain the 2026-11-07 candidate and must not be relabeled
+with these new identities.
+
+Desktop used 1440 × 1000 CSS pixels; phone used Playwright's Pixel 5 preset.
+Both passed viewport-fit checks; phone Preview had at least a 44px touch height.
+Behavioral assertions covered all six event previews, missing-URL whole-pair
+fallback, preparation without activation, explicit activation, reload, and
+restore-on-Save. Synthetic providers stayed disabled with empty subscriptions.
+The migration drill imported four legacy templates, and the recovery drill
+verified three exact bindings after a same-candidate database restore. These
+are browser viewport checks, not a native desktop-shell or physical-phone test.
+
+Reproduce from the plugin task worktree with Node 24 on `PATH`:
+
+```sh
+npm ci --ignore-scripts
+GOMAXPROCS=4 GOFLAGS='-p=2' make dev-test KANDEV_FORMATTER_SOURCE="$HOST_SOURCE"
+GOMAXPROCS=4 GOFLAGS='-p=2' make dev-package-host KANDEV_FORMATTER_SOURCE="$HOST_SOURCE"
+npm run test:host -- "$HOST_BINARY" "$HOST_WEB_DIST" "$PWD/kandev-plugin-apprise-templates-0.1.0.tar.gz"
+```
+
+`HOST_SOURCE` is the explicitly selected host checkout at the source SHA above;
+`HOST_BINARY` and `HOST_WEB_DIST` are its independently built binary and web
+distribution. The source snapshot and smoke receipts remain private-lane
+evidence regardless of the source repository's visibility.
+
+Two-axis read-only review of these local changes reported zero Standards and
+zero Spec findings. Final public `GOWORK=off make sdk-check` still fails at the
+new formatter contract check, correctly retaining the release blocker.

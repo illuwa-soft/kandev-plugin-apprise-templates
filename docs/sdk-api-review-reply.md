@@ -27,7 +27,7 @@ and the minimum-host smoke still tested the original starter plugin. The public
 lane now explicitly checks the formatter TypeScript contract; the smoke path
 exercises the packaged Apprise editor rather than starter routes.
 
-Please review/confirm the following before I select a public SDK pin:
+The remaining review/publication requests before selecting a public SDK pin are:
 
 1. The optional `FormatNotification` and `InspectNotificationConfiguration` RPCs,
    DTOs, generated service/adapters, and verified provider/formatter context.
@@ -50,6 +50,14 @@ three-binding recovery. These use the unreleased source SDK and a locally
 built host; they do **not** demonstrate public SDK or official release compatibility.
 The pinned identities, artifact digests, results, and remaining gates are in
 `docs/sdk-api-review.md`.
+
+The final tested plugin archive comes from clean source
+`b9845ecbb17d5df71645b91c98dbafb2b9c08ee4`, using host source
+`801af86298d53e52ad5442d834976bb516d96240`. Its SHA-256 is
+`c4917938428e06146eedab91976c8c6fa61fe2db0877505b468991ec742ce655`.
+`docs/sdk-api-review-receipt.json` links that archive to the host executable,
+raw browser receipt, and four desktop/phone screenshots. This is a darwin-arm64
+development archive, not a public release package.
 
 Once the supporting SDKs and host are published, I can update the exact pins
 and rerun the clean public-dependency build/test/all-platform-package and
