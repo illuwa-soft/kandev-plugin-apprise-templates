@@ -2,6 +2,11 @@
 
 ## Candidate status
 
+The [2026-11-11 SDK/API review](sdk-api-review.md) supersedes the public-SDK
+availability and candidate identity statements below. Both public SDKs have
+published `0.2.0`, but neither contains the formatter extension. The pins stay
+at `0.1.0`; the product remains release-blocked.
+
 This is an unreleased development implementation of Apprise notification
 templates. It requires the coordinated Kandev notification formatter extension.
 The published Go/npm SDK `0.1.0` and its `0.99.0` host floor do not provide that
@@ -27,7 +32,9 @@ GOMAXPROCS=4 GOFLAGS='-p=2' make dev-package-host KANDEV_FORMATTER_SOURCE="$KAND
 ```
 
 The development helper copies the selected SDK into ignored `.build` storage
-and records its source revision, dirty state, and tree digest. Normal build and
+and records its source revision, dirty state, Go tree digest, and frontend entry
+digest. `dev-test` runs the full test target, backend race tests, and the formatter
+TypeScript contract check using an explicit copied source SDK. Normal build and
 release targets retain their public dependency checks; they are not a working
 release lane for this candidate yet.
 
@@ -39,6 +46,13 @@ to the binary, distribution, and generated host-platform archive:
 ```sh
 node scripts/smoke-formatter-host.mjs "$KANDEV_BINARY" "$KANDEV_WEB_DIST" "$KANDEV_PLUGIN_PACKAGE"
 ```
+
+`npm run test:host -- ABS_BINARY ABS_WEB_DIST_OR_DASH ABS_PACKAGE` runs the same
+formatter workflow. A `-` web input uses the host's embedded release assets.
+`scripts/test-minimum-host.sh` selects that mode after downloading and checking
+the official minimum-host archive. It no longer runs the inherited starter's
+greeting, `/template`, or `event_count` assertions. That Linux release lane
+remains blocked pending the supporting public host and SDKs.
 
 The runner starts its own isolated home and loopback backend. It installs the
 actual archive and exercises the product editor on desktop and Pixel 5 phone

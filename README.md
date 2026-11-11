@@ -6,8 +6,9 @@ is stored as immutable snapshots with explicit initial activation and synthetic
 previews in the native notification settings editor.
 
 This candidate needs the coordinated, unreleased formatter Host API. Published
-SDK `0.1.0` and unchanged stable hosts are not supported by the new formatter
-implementation yet. See [development validation](docs/formatter-validation.md)
+SDK `0.1.0` (pinned here) and `0.2.0` (rechecked on 2026-11-11) lack this
+extension. See [the SDK/API review](docs/sdk-api-review.md) for the release
+blockers and maintainer requests, and [development validation](docs/formatter-validation.md)
 for reproducible checks, current evidence, and remaining acceptance work.
 
 ## Inherited starter reference
