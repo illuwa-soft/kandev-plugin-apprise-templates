@@ -11,12 +11,15 @@ const sdk = path.join(await fs.realpath(source), "pluginsdk");
 const api = await fs.readFile(path.join(sdk, "notification_formatter.go"), "utf8");
 if (!api.includes("type NotificationFormatter interface")) throw new Error("selected SDK has no notification formatter contract");
 const revision = execFileSync("git", ["-C", source, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-const dirty = execFileSync("git", ["-C", source, "status", "--porcelain", "--", "pluginsdk"], { encoding: "utf8" }).trim() !== "";
+const dirty = execFileSync("git", ["-C", source, "status", "--porcelain", "--", "pluginsdk", "apps/packages/plugin-sdk/src"], { encoding: "utf8" }).trim() !== "";
 const build = path.join(root, ".build");
 await fs.mkdir(build, { recursive: true });
 const snapshot = path.join(build, "development-sdk");
+const frontend = path.join(build, "development-frontend-sdk");
 await fs.rm(snapshot, { recursive: true, force: true });
 await fs.cp(sdk, snapshot, { recursive: true, filter: (entry) => !path.relative(sdk, entry).split(path.sep).some((part) => [".tools", ".git"].includes(part)) });
+await fs.rm(frontend, { recursive: true, force: true });
+await fs.cp(path.join(source, "apps/packages/plugin-sdk/src"), path.join(frontend, "src"), { recursive: true });
 const hash = createHash("sha256");
 async function digestTree(directory, relative = "") {
   for (const entry of (await fs.readdir(directory, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
@@ -28,6 +31,11 @@ async function digestTree(directory, relative = "") {
 }
 await digestTree(snapshot);
 await fs.writeFile(path.join(build, "development.go.work"), `go 1.26.0\n\nuse (\n ${JSON.stringify(root)}\n ${JSON.stringify(snapshot)}\n)\n`);
-const receipt = { mode: "private-unreleased-sdk", source_revision: revision, source_dirty: dirty, sdk_tree_sha256: hash.digest("hex"), public_release_verified: false };
+await fs.writeFile(path.join(build, "development.tsconfig.json"), JSON.stringify({
+  extends: "../tsconfig.formatter.json",
+  compilerOptions: { paths: { "@kdlbs/plugin-sdk": [path.join(frontend, "src/index.ts")] } },
+}, null, 2));
+const receipt = { mode: "private-unreleased-sdk", source_revision: revision, source_dirty: dirty, sdk_tree_sha256: hash.digest("hex"),
+  frontend_entry_sha256: createHash("sha256").update(await fs.readFile(path.join(frontend, "src/index.ts"))).digest("hex"), public_release_verified: false };
 await fs.writeFile(path.join(build, "development-sdk-receipt.json"), JSON.stringify(receipt, null, 2));
 console.log(JSON.stringify(receipt));

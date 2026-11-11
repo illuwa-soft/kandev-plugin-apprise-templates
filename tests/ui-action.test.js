@@ -3,6 +3,45 @@ import test from "node:test";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
 
+test("a failed candidate load stays dirty without vetoing independent shared saves", async () => {
+  let definition;
+  const context = vm.createContext({ AbortController, structuredClone, window: {
+    registerKandevPlugin(_id, value) { definition = value; },
+  } });
+  const entry = new vm.SourceTextModule(await readFile(new URL("../ui/bundle.js", import.meta.url), "utf8"), { context });
+  await entry.link(async (specifier) => {
+    const name = specifier.split("/").at(-1).split("?")[0];
+    return new vm.SourceTextModule(await readFile(new URL(`../ui/${name}`, import.meta.url), "utf8"), { context });
+  });
+  await entry.evaluate();
+  let component, state, setup, contributor;
+  const ref = { current: null };
+  definition.initialize({ registerTranslations() {}, registerComponent(_slot, value) { component = value; } }, {
+    React: {
+      useRef: () => ref,
+      useState(initial) { state ??= initial; return [state, (value) => { state = value; }]; },
+      useEffect(value) { setup = value; },
+    },
+    jsx: (type, props, ...children) => ({ type, props, children }),
+    ui: { Button: "button", Input: "input", Textarea: "textarea" },
+    i18n: { useTranslation: () => ({ t: (key) => key }) },
+    api: { invokeAction: async () => { throw new Error("unavailable"); } },
+    useSettingsSaveContributor(value) { contributor = value; },
+  });
+  const props = { slotProps: { provider: { id: "mail", events: [] },
+    formatter: { plugin_id: "plugin", installation_id: "install", key: "text" }, binding: null } };
+  component(props);
+  const cleanup = setup();
+  try {
+    await new Promise((resolve) => setImmediate(resolve));
+    component(props);
+    assert.equal(state.notice, "loadError");
+    assert.equal(contributor.isDirty, true);
+    assert.notEqual(contributor.canSave, false, "candidate failure must not veto the whole shared save");
+    await assert.rejects(contributor.save(), /not ready/);
+  } finally { cleanup(); }
+});
+
 test("the product registers only its owned formatter editor and complete locale catalogs", async () => {
   let definition;
   const context = vm.createContext({ window: { registerKandevPlugin(id, value) {

@@ -35,7 +35,7 @@ function createEditor(host) {
     host.useSettingsSaveContributor({
       id: `templates:${props.provider.id}`, order: 40,
       revision: JSON.stringify([state.configuration, state.bindingRevision]),
-      isDirty: editor.isDirty(), canSave: state.loaded && !state.saving,
+      isDirty: editor.isDirty(), canSave: !state.saving,
       save: () => editor.save(), discard: () => editor.discard(),
     });
     const run = (promise, notice) => { void promise.catch(() => editor.reportError(notice)); };

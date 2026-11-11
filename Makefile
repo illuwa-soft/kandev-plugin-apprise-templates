@@ -3,7 +3,7 @@
 .PHONY: build run test test-backend test-recipes test-ui test-package-verifier \
 	test-release-version typecheck-recipes audit-recipes check-format fmt vet \
 	sdk-check package package-host package-file verify-package verify-package-host clean \
-	test-native-snapshot development-sdk dev-test dev-package-host
+	test-native-snapshot typecheck-formatter development-sdk dev-test dev-package-host
 
 # When you rename the plugin, update BIN and VERSION to match manifest.yaml's
 # id and version (PKG_OUT is derived from them).
@@ -20,6 +20,10 @@ KANDEV_TOOLING ?= $(CURDIR)/.build/kandev-tooling/apps/backend
 # Run after npm ci so both installed SDK records and the lockfile are checked.
 sdk-check:
 	go run github.com/kdlbs/kandev/pluginsdk/cmd/kandev-sdk-check@v0.1.0 --manifest manifest.yaml --frontend-sdk node_modules/@kdlbs/plugin-sdk
+	$(MAKE) typecheck-formatter
+
+typecheck-formatter:
+	npm run typecheck:formatter
 
 ## Build the plugin binary for the host platform (development use). kandev
 ## itself always installs from `make package`/`package-host` output, not this.
@@ -108,9 +112,9 @@ development-sdk:
 
 dev-test: export GOWORK = $(CURDIR)/.build/development.go.work
 dev-test: development-sdk
-	$(MAKE) test-native-snapshot
+	$(MAKE) test
 	GOWORK="$(CURDIR)/.build/development.go.work" go test -trimpath -race ./server/... ./cmd/... ./recipes/source-control/server/...
-	npm run test:ui
+	node node_modules/typescript/bin/tsc --project .build/development.tsconfig.json --noEmit
 
 dev-package-host: development-sdk
 	GOWORK="$(CURDIR)/.build/development.go.work" $(MAKE) _package-host KANDEV_TOOLING="$(KANDEV_FORMATTER_SOURCE)/apps/backend"

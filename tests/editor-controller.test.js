@@ -190,3 +190,138 @@ test("a late import cannot replace the activation target from a newer Save", asy
   assert.equal(editor.state.configuration.origin, "https://newer.invalid");
   editor.destroy();
 });
+
+test("a delayed load merges newer field edits without dropping saved templates", async () => {
+  let finish;
+  const options = fixture();
+  const invoke = options.invoke;
+  options.invoke = (key, input) => key === "templates.get"
+    ? new Promise((resolve) => { finish = resolve; }) : invoke(key, input);
+  const editor = createEditorController(options);
+  const loading = editor.load();
+  editor.editOrigin("https://draft.invalid");
+  editor.editTemplate("title", "Later title");
+  finish({ revision: "old", configuration: { version: 1, origin: "https://saved.invalid", templates: {
+    "session.clarification_requested": { version: 1, title: "Saved title", body: "Saved body" },
+    "session.failed": { version: 1, title: "Failure title", body: "Failure body" },
+  } } });
+  await loading;
+  assert.equal(editor.state.loaded, true);
+  assert.equal(editor.state.configuration.origin, "https://draft.invalid");
+  assert.deepEqual(editor.state.configuration.templates["session.clarification_requested"], {
+    version: 1, title: "Later title", body: "Saved body",
+  });
+  assert.equal(editor.state.configuration.templates["session.failed"].body, "Failure body");
+  assert.equal(editor.isDirty(), true);
+  editor.discard();
+  assert.equal(editor.state.configuration.origin, "https://saved.invalid");
+  assert.equal(editor.state.configuration.templates["session.clarification_requested"].title, "Saved title");
+  assert.equal(editor.isDirty(), false);
+  editor.destroy();
+});
+
+test("load retry retains edits made after a loading failure", async () => {
+  const options = fixture();
+  const invoke = options.invoke;
+  let available = false;
+  options.invoke = (key, input) => {
+    if (!available) throw new Error("unavailable");
+    return invoke(key, input);
+  };
+  const editor = createEditorController(options);
+  await editor.load();
+  editor.editOrigin("https://retained.invalid");
+  available = true;
+  await editor.load();
+  assert.equal(editor.state.loaded, true);
+  assert.equal(editor.state.configuration.origin, "https://retained.invalid");
+  assert.equal(editor.isDirty(), true);
+  editor.destroy();
+});
+
+test("Reset during loading discards queued edits before the saved snapshot arrives", async () => {
+  let finish;
+  const options = fixture();
+  const invoke = options.invoke;
+  options.invoke = (key, input) => key === "templates.get"
+    ? new Promise((resolve) => { finish = resolve; }) : invoke(key, input);
+  const editor = createEditorController(options);
+  const loading = editor.load();
+  editor.editOrigin("https://discarded.invalid");
+  editor.discard();
+  finish({ revision: "old", configuration: { ...config(), origin: "https://saved.invalid" } });
+  await loading;
+  assert.equal(editor.state.configuration.origin, "https://saved.invalid");
+  assert.equal(editor.isDirty(), false);
+  editor.destroy();
+});
+
+test("reload preserves edits made while reading the authoritative binding", async () => {
+  let finish;
+  const editor = createEditorController(fixture({ readActiveBinding: () => new Promise((resolve) => { finish = resolve; }) }));
+  await editor.load();
+  const loading = editor.reload();
+  editor.editOrigin("https://during-readback.invalid");
+  finish(binding);
+  await loading;
+  assert.equal(editor.state.configuration.origin, "https://during-readback.invalid");
+  assert.equal(editor.isDirty(), true);
+  editor.destroy();
+});
+
+test("a load started before import cannot replace its prepared snapshot", async () => {
+  let finish, activated;
+  const options = fixture({ activateConfiguration: async (snapshot) => {
+    activated = snapshot.revision;
+    return { ...binding, configuration_revision: snapshot.revision };
+  } });
+  const invoke = options.invoke;
+  options.invoke = (key, input) => {
+    if (key === "templates.get") return new Promise((resolve) => { finish = resolve; });
+    if (key === "templates.import") return { revision: "imported", configuration: {
+      ...config(), origin: "https://imported.invalid",
+    } };
+    return invoke(key, input);
+  };
+  const editor = createEditorController(options);
+  const loading = editor.load();
+  await editor.importConfiguration({});
+  finish({ revision: "old", configuration: config() });
+  await loading;
+  assert.equal(editor.state.loaded, true);
+  assert.deepEqual(editor.state.events, ["session.failed"]);
+  assert.equal(editor.state.configuration.origin, "https://imported.invalid");
+  assert.equal(editor.isDirty(), true);
+  await editor.activatePrepared();
+  assert.equal(activated, "imported");
+  assert.equal(editor.isDirty(), false);
+  editor.destroy();
+});
+
+test("edits during import merge over imported templates before the next Save", async () => {
+  let finishLoad, finishImport, submitted;
+  const options = fixture({ binding: null });
+  const invoke = options.invoke;
+  options.invoke = (key, input) => {
+    if (key === "templates.get") return new Promise((resolve) => { finishLoad = resolve; });
+    if (key === "templates.import") return new Promise((resolve) => { finishImport = resolve; });
+    if (key === "templates.prepare") submitted = input.body.configuration;
+    return invoke(key, input);
+  };
+  const editor = createEditorController(options);
+  const loading = editor.load();
+  const importing = editor.importConfiguration({});
+  editor.editOrigin("https://later.invalid");
+  const templates = {
+    "session.failed": { version: 1, title: "Failure", body: "Imported failure" },
+    "office.inbox_item": { version: 1, title: "Inbox", body: "Imported inbox" },
+  };
+  finishImport({ revision: "imported", configuration: { ...config(), templates } });
+  await importing;
+  finishLoad({ revision: "old", configuration: config() });
+  await loading;
+  await editor.save();
+  assert.equal(submitted.origin, "https://later.invalid");
+  assert.deepEqual(submitted.templates, templates);
+  editor.destroy();
+});

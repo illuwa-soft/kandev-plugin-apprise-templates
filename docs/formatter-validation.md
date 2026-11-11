@@ -2,6 +2,11 @@
 
 ## Candidate status
 
+The [2026-11-11 SDK/API review](sdk-api-review.md) supersedes the public-SDK
+availability and candidate identity statements below. Both public SDKs have
+published `0.2.0`, but neither contains the formatter extension. The pins stay
+at `0.1.0`; the product remains release-blocked.
+
 This is an unreleased development implementation of Apprise notification
 templates. It requires the coordinated Kandev notification formatter extension.
 The published Go/npm SDK `0.1.0` and its `0.99.0` host floor do not provide that
@@ -27,7 +32,9 @@ GOMAXPROCS=4 GOFLAGS='-p=2' make dev-package-host KANDEV_FORMATTER_SOURCE="$KAND
 ```
 
 The development helper copies the selected SDK into ignored `.build` storage
-and records its source revision, dirty state, and tree digest. Normal build and
+and records its source revision, dirty state, Go tree digest, and frontend entry
+digest. `dev-test` runs the full test target, backend race tests, and the formatter
+TypeScript contract check using an explicit copied source SDK. Normal build and
 release targets retain their public dependency checks; they are not a working
 release lane for this candidate yet.
 
@@ -39,6 +46,13 @@ to the binary, distribution, and generated host-platform archive:
 ```sh
 node scripts/smoke-formatter-host.mjs "$KANDEV_BINARY" "$KANDEV_WEB_DIST" "$KANDEV_PLUGIN_PACKAGE"
 ```
+
+`npm run test:host -- ABS_BINARY ABS_WEB_DIST_OR_DASH ABS_PACKAGE` runs the same
+formatter workflow. A `-` web input uses the host's embedded release assets.
+`scripts/test-minimum-host.sh` selects that mode after downloading and checking
+the official minimum-host archive. It no longer runs the inherited starter's
+greeting, `/template`, or `event_count` assertions. That Linux release lane
+remains blocked pending the supporting public host and SDKs.
 
 The runner starts its own isolated home and loopback backend. It installs the
 actual archive and exercises the product editor on desktop and Pixel 5 phone
@@ -164,3 +178,33 @@ be described as green.
 
 No production upgrade or public plugin release has been performed by these
 development checks.
+
+## Editor review follow-up (2026-11-09)
+
+Candidate loading errors no longer register a page-wide Save veto. The editor's
+Save rejects its own unavailable state, leaving the draft dirty and navigation
+guarded, while the host coordinator continues saving independent settings.
+
+Delayed snapshot loads replay only newer field edits over the saved configuration;
+they preserve untouched templates and the Reset baseline. Retry retains edits made
+after failed loading. A successful import supersedes an older snapshot response
+without discarding the event/variable catalog. These sequences have controller
+regressions and a mounted editor contributor-contract check.
+
+The explicit private-source lane passed the complete `make test` target: Go server,
+exporter and recipe packages, recipe typecheck and 14 recipe tests, UI/controller
+and HTTP polling tests (23), package/release verifier negatives, and five native
+snapshot/capture/backup tests. The public SDK pins are unchanged and still do not
+implement the formatter extension.
+
+The host-platform package also passed managed desktop and Pixel 5 workflows,
+six-event previews, default fallback, prepare/explicit activation, reload/restore,
+four-template migration and exact three-binding recovery on the rebuilt local
+host. The receipt is retained under ignored `.build/formatter-browser/`; it
+identifies the precise development host and package bytes, not a public release.
+
+Final follow-up package SHA-256:
+`2fd255e41caf1d5d91196d40c03a6a9c7f609e62e3a800a2c404f4f9a5853574`.
+Rebuilt development host SHA-256:
+`6d2038b6017273bb989c31b3229b7b1f7a08ada8df8b26c34214e641f4284055`.
+The final two-axis review found no remaining findings in the requested fix scope.

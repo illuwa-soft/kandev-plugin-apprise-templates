@@ -8,8 +8,9 @@
   "scripts": {
     "test:recipes": "vitest run recipes/source-control/ui",
     "typecheck:recipes": "tsc --project tsconfig.recipes.json --noEmit",
+    "typecheck:formatter": "tsc --project tsconfig.formatter.json --noEmit",
     "test:ui": "node --experimental-vm-modules --test tests/ui-action.test.js tests/editor-controller.test.js tests/smoke-http.test.js",
-    "test:host": "node scripts/smoke-minimum-host.mjs"
+    "test:host": "node scripts/smoke-formatter-host.mjs"
   },
   "devDependencies": {
     "@kdlbs/plugin-sdk": "0.1.0",
