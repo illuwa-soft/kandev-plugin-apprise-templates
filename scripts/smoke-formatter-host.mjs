@@ -14,8 +14,9 @@ import { formatterMigrationDrill } from "./formatter-migration-drill.mjs";
 
 const [binary, webDist, archive, mode] = process.argv.slice(2);
 assert.ok(mode === undefined || mode === "reject", "Unknown smoke mode");
-for (const filename of [binary, webDist, archive]) {
-  assert.ok(filename && path.isAbsolute(filename), "Usage: node scripts/smoke-formatter-host.mjs ABS_BINARY ABS_WEB_DIST ABS_PACKAGE");
+assert.ok(webDist === "-" || (webDist && path.isAbsolute(webDist)), "Use ABS_WEB_DIST or - for embedded release assets");
+for (const filename of [binary, ...(webDist === "-" ? [] : [webDist]), archive]) {
+  assert.ok(filename && path.isAbsolute(filename), "Usage: node scripts/smoke-formatter-host.mjs ABS_BINARY ABS_WEB_DIST_OR_DASH ABS_PACKAGE");
   await fs.stat(filename);
 }
 assert.equal(await fs.realpath(process.cwd()), await fs.realpath(fileURLToPath(new URL("../",import.meta.url))), "Run the smoke runner from the plugin repository root");
@@ -43,7 +44,8 @@ const environment = {
     HOME: home, LANG: "en_US.UTF-8", TMPDIR: process.env.TMPDIR ?? "/tmp",
     KANDEV_HOME_DIR: home, KANDEV_DATABASE_PATH: path.join(home, "host.db"),
     KANDEV_SERVER_HOST: "127.0.0.1", KANDEV_SERVER_PORT: String(port),
-    KANDEV_WEB_DIST_DIR: webDist, KANDEV_E2E_MOCK: "true", KANDEV_DOCKER_ENABLED: "false",
+    ...(webDist === "-" ? {} : { KANDEV_WEB_DIST_DIR: webDist }),
+    KANDEV_E2E_MOCK: "true", KANDEV_DOCKER_ENABLED: "false",
     AGENTCTL_PORT: String(agentPort),
 };
 let child;
@@ -82,6 +84,9 @@ const browserErrors = [];
 try {
   await ready();
   const health = await json("/health");
+  if (process.env.KANDEV_FORMATTER_EXPECT_HOST_VERSION) {
+    assert.equal(health.version, process.env.KANDEV_FORMATTER_EXPECT_HOST_VERSION, "official minimum host version");
+  }
   const form = new FormData();
   form.set("package", new Blob([await fs.readFile(archive)]), "formatter.tar.gz");
   if (mode === "reject") {
@@ -116,7 +121,7 @@ try {
     providerIds.push(provider.id);
     await page.goto(`${base}/settings/preferences/notifications`, { waitUntil: "domcontentloaded" });
     const row = page.getByTestId(`notification-formatter-${provider.id}`);
-    await row.getByRole("combobox").selectOption({ label: "kandev-plugin-apprise-templates / apprise-text (0.1.0)" });
+    await row.locator("select").selectOption({ label: "kandev-plugin-apprise-templates / apprise-text (0.1.0)" });
     const editor = row.getByTestId("apprise-template-editor");
     await editor.getByTestId("apprise-template-event").selectOption("session.failed");
     await editor.getByTestId("apprise-template-title").fill("Synthetic {{event.type}}");
@@ -183,8 +188,11 @@ try {
   try { await fs.copyFile(path.join(home, "logs/backend-logs.log"), path.join(output, "failure-backend.log")); }
   catch { /* Startup failures may precede structured logger creation. */ }
   if (currentPage && !currentPage.isClosed()) {
-    await currentPage.screenshot({ path: path.join(output, "failure.png"), fullPage: true });
-    await fs.writeFile(path.join(output, "failure-ui.txt"), `${browserErrors.join("\n")}\n${await currentPage.locator("body").innerText()}`, { mode: 0o600 });
+    try {
+      await fs.writeFile(path.join(output, "failure.html"), await currentPage.content(), { mode: 0o600 });
+      await fs.writeFile(path.join(output, "failure-ui.txt"), `${String(error)}\n${browserErrors.join("\n")}\n${await currentPage.locator("body").innerText()}`, { mode: 0o600 });
+      await currentPage.screenshot({ path: path.join(output, "failure.png"), fullPage: true, timeout: 5000 });
+    } catch { /* Diagnostic capture must not replace the original failure. */ }
   }
   throw error;
 } finally {
